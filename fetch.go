@@ -105,3 +105,7 @@ func Fetch(address string, options Options) (body Response, err error) {
 		Status:  response.StatusCode,
 	}, nil
 }
+
+func SetClient(fresh *http.Client) {
+	client = fresh
+}
