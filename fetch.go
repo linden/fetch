@@ -105,6 +105,7 @@ func Fetch(address string, options Options) (body Response, err error) {
 		Headers:    response.Header,
 		Status:     response.StatusCode,
 		StatusText: response.Status,
+		URL:        address,
 	}, nil
 }
 
