@@ -23,9 +23,10 @@ type Response struct {
 	body     io.ReadCloser
 	bodyUsed bool
 
-	Headers map[string][]string
-	Status  int
-	URL     string
+	Headers    map[string][]string
+	Status     int
+	StatusText string
+	URL        string
 }
 
 var client *http.Client
@@ -101,8 +102,9 @@ func Fetch(address string, options Options) (body Response, err error) {
 		body:     response.Body,
 		bodyUsed: false,
 
-		Headers: response.Header,
-		Status:  response.StatusCode,
+		Headers:    response.Header,
+		Status:     response.StatusCode,
+		StatusText: response.Status,
 	}, nil
 }
 
