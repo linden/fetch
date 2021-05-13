@@ -15,7 +15,7 @@ import (
 func main() {
 	//make the inital request
 	response, err := fetch.Fetch("https://www.githubstatus.com/api/v2/status.json", fetch.Options{
-        Headers: fetch.Headers{
+        	Headers: fetch.Headers{
 			"User-Agent": "Example",
 		},
 		Method: "GET",
