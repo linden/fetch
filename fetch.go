@@ -99,7 +99,7 @@ func Fetch(address string, options Options) (body Response, err error) {
 	}
 
 	return Response{
-		Bodyy:     response.Body,
+		Body:     response.Body,
 		BodyUsed: false,
 
 		Headers:    response.Header,
