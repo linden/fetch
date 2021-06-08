@@ -20,8 +20,8 @@ type Options struct {
 type Object map[string]interface{}
 
 type Response struct {
-	body     io.ReadCloser
-	bodyUsed bool
+	Body     io.ReadCloser
+	BodyUsed bool
 
 	Headers    map[string][]string
 	Status     int
@@ -36,33 +36,33 @@ func init() {
 }
 
 func (response *Response) Text() (body string, err error) {
-	if response.bodyUsed != false {
+	if response.BodyUsed != false {
 		return "", errors.New("response body already used")
 	}
 
-	plain, err := ioutil.ReadAll(response.body)
+	plain, err := ioutil.ReadAll(response.Body)
 
 	if err != nil {
 		return "", err
 	}
 
-	response.bodyUsed = true
+	response.BodyUsed = true
 
 	return string(plain), nil
 }
 
-func (response *Response) JSON() (body Object, err error) {
-	if response.bodyUsed != false {
+func (response *Response) JSON() (Body Object, err error) {
+	if response.BodyUsed != false {
 		return Object{}, errors.New("response body already used")
 	}
 
-	plain, err := ioutil.ReadAll(response.body)
+	plain, err := ioutil.ReadAll(response.Body)
 
 	if err != nil {
 		return Object{}, err
 	}
 
-	response.bodyUsed = true
+	response.BodyUsed = true
 
 	var object Object
 
@@ -99,8 +99,8 @@ func Fetch(address string, options Options) (body Response, err error) {
 	}
 
 	return Response{
-		body:     response.Body,
-		bodyUsed: false,
+		Bodyy:     response.Body,
+		BodyUsed: false,
 
 		Headers:    response.Header,
 		Status:     response.StatusCode,
