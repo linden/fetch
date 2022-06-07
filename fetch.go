@@ -24,11 +24,7 @@ type Response[T any] struct {
 	URL        string
 }
 
-var client *http.Client
-
-func init() {
-	client = &http.Client{}
-}
+var Client = &http.Client{}
 
 func Fetch[T any](address string, options Options) (Response[T], error) {
 	if options.Method == "" {
@@ -47,7 +43,7 @@ func Fetch[T any](address string, options Options) (Response[T], error) {
 		}
 	}
 
-	response, err := client.Do(request)
+	response, err := Client.Do(request)
 
 	if err != nil {
 		return Response[T]{}, err
