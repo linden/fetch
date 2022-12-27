@@ -3,11 +3,12 @@ package fetch
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 )
 
-type Headers map[string]string
+type Headers map[string]any
 
 type Options struct {
 	Method  string
@@ -18,7 +19,7 @@ type Options struct {
 type Response[T any] struct {
 	Body T
 
-	Headers    map[string][]string
+	Headers    Headers
 	Status     int
 	StatusText string
 	URL        string
@@ -38,8 +39,19 @@ func Fetch[T any](address string, options Options) (Response[T], error) {
 	}
 
 	if len(options.Headers) > 0 {
-		for key, value := range options.Headers {
-			request.Header.Add(key, value)
+		for key, unknown := range options.Headers {
+			switch value := unknown.(type) {
+			case string:
+				request.Header.Add(key, value)
+
+			case []string:
+				for _, cursor := range value {
+					request.Header.Add(key, cursor)
+				}
+
+			default:
+				return Response[T]{}, fmt.Errorf("%T is not a supported header type", value)
+			}
 		}
 	}
 
@@ -74,10 +86,20 @@ func Fetch[T any](address string, options Options) (Response[T], error) {
 		}
 	}
 
+	headers := make(map[string]any)
+
+	for key, value := range response.Header {
+		if len(value) == 1 {
+			headers[key] = any(value[0])
+		} else {
+			headers[key] = any(value)
+		}
+	}
+
 	return Response[T]{
 		Body: body,
 
-		Headers:    response.Header,
+		Headers:    headers,
 		Status:     response.StatusCode,
 		StatusText: response.Status,
 		URL:        address,

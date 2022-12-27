@@ -59,6 +59,7 @@ func TestAdvanced(test *testing.T) {
 		Method: "POST",
 		Headers: Headers{
 			"User-Agent": "example",
+			"Example":    []string{"Hello", "World"},
 		},
 		Body: "Hello World",
 	})
