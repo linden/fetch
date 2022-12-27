@@ -25,7 +25,7 @@ type Response[T any] struct {
 	URL        string
 }
 
-type Empty any
+type Empty struct{}
 
 var Client = &http.Client{}
 
