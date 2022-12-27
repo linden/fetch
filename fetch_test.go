@@ -33,7 +33,7 @@ func host() {
 func TestSimple(test *testing.T) {
 	go host()
 
-	response, err := Fetch[string]("http://localhost:8080/plain", Options{})
+	response, err := Fetch[string]("http://localhost:8080/plain", Options[Empty]{})
 
 	test.Run("get response", func(test *testing.T) {
 		if err != nil {
@@ -55,7 +55,7 @@ func TestSimple(test *testing.T) {
 func TestAdvanced(test *testing.T) {
 	go host()
 
-	response, err := Fetch[Example]("http://localhost:8080/json", Options{
+	response, err := Fetch[Example]("http://localhost:8080/json", Options[string]{
 		Method: "POST",
 		Headers: Headers{
 			"User-Agent": "example",
@@ -85,6 +85,6 @@ func BenchmarkGet(benchmark *testing.B) {
 	go host()
 
 	for index := 0; index < benchmark.N; index++ {
-		Fetch[string]("http://localhost:8080/plain", Options{})
+		Fetch[string]("http://localhost:8080/plain", Options[Empty]{})
 	}
 }

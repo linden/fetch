@@ -10,10 +10,10 @@ import (
 
 type Headers map[string]any
 
-type Options struct {
+type Options[T any] struct {
 	Method  string
 	Headers Headers
-	Body    string
+	Body    T
 }
 
 type Response[T any] struct {
@@ -25,14 +25,39 @@ type Response[T any] struct {
 	URL        string
 }
 
+type Empty any
+
 var Client = &http.Client{}
 
-func Fetch[T any](address string, options Options) (Response[T], error) {
+func Fetch[T any, B any](address string, options Options[B]) (Response[T], error) {
 	if options.Method == "" {
 		options.Method = "GET"
 	}
 
-	request, err := http.NewRequest(options.Method, address, bytes.NewBuffer([]byte(options.Body)))
+	var payload []byte
+
+	switch value := any(options.Body).(type) {
+	case []byte:
+		payload = value
+
+	case string:
+		payload = []byte(value)
+
+	case Empty:
+		// do nothing
+
+	default:
+		// TODO: check if `T` is non-json
+		var err error
+
+		payload, err = json.Marshal(value)
+
+		if err != nil {
+			return Response[T]{}, err
+		}
+	}
+
+	request, err := http.NewRequest(options.Method, address, bytes.NewBuffer(payload))
 
 	if err != nil {
 		return Response[T]{}, err
@@ -77,8 +102,7 @@ func Fetch[T any](address string, options Options) (Response[T], error) {
 		body = any(plain).(T)
 
 	default:
-		//TODO: check if `T` is non-json
-
+		// TODO: check if `T` is non-json
 		err = json.Unmarshal(plain, &body)
 
 		if err != nil {
