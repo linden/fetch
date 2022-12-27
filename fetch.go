@@ -3,7 +3,7 @@ package fetch
 import (
 	"bytes"
 	"encoding/json"
-	"io/ioutil"
+	"io"
 	"net/http"
 )
 
@@ -49,7 +49,7 @@ func Fetch[T any](address string, options Options) (Response[T], error) {
 		return Response[T]{}, err
 	}
 
-	plain, err := ioutil.ReadAll(response.Body)
+	plain, err := io.ReadAll(response.Body)
 
 	if err != nil {
 		return Response[T]{}, err
