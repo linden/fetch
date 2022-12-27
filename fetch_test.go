@@ -6,6 +6,10 @@ import (
 	"testing"
 )
 
+type Example struct {
+	Hello string
+}
+
 var hosting bool
 
 func host() {
@@ -29,36 +33,21 @@ func host() {
 func TestSimple(test *testing.T) {
 	go host()
 
-	response, err := Fetch("http://localhost:8080/plain", Options{})
+	response, err := Fetch[string]("http://localhost:8080/plain", Options[Empty]{})
 
 	test.Run("get response", func(test *testing.T) {
 		if err != nil {
-			test.Errorf("HTTP response failed: %v\n", err)
-			return
+			test.Fatalf("HTTP response failed: %v\n", err)
 		} else {
 			test.Logf("HTTP response received\n")
 		}
 	})
 
-	_, err = response.Text()
-
-	test.Run("get response body", func(test *testing.T) {
-		if err != nil {
-			test.Errorf("HTTP response body failed: %v\n", err)
-			return
+	test.Run("check response body", func(test *testing.T) {
+		if response.Body != "Hello World" {
+			test.Fatalf("HTTP response body expected \"Hello World\" but got \"%s\"", response.Body)
 		} else {
-			test.Logf("HTTP response body read\n")
-		}
-	})
-
-	_, err = response.Text()
-
-	test.Run("close response body", func(test *testing.T) {
-		if err == nil {
-			test.Errorf("HTTP response body failed to close")
-			return
-		} else {
-			test.Logf("HTTP response body closed\n")
+			test.Logf("HTTP response was correct\n")
 		}
 	})
 }
@@ -66,42 +55,28 @@ func TestSimple(test *testing.T) {
 func TestAdvanced(test *testing.T) {
 	go host()
 
-	response, err := Fetch("http://localhost:8080/json", Options{
+	response, err := Fetch[Example]("http://localhost:8080/json", Options[string]{
 		Method: "POST",
 		Headers: Headers{
 			"User-Agent": "example",
+			"Example":    []string{"Hello", "World"},
 		},
 		Body: "Hello World",
 	})
 
 	test.Run("get response", func(test *testing.T) {
 		if err != nil {
-			test.Errorf("HTTP response failed: %v\n", err)
-			return
+			test.Fatalf("HTTP response failed: %v\n", err)
 		} else {
 			test.Logf("HTTP response received\n")
 		}
 	})
 
-	_, err = response.JSON()
-
-	test.Run("get response body", func(test *testing.T) {
-		if err != nil {
-			test.Errorf("HTTP response body failed: %v\n", err)
-			return
+	test.Run("check response body", func(test *testing.T) {
+		if response.Body.Hello != "World" {
+			test.Fatalf("HTTP response body expected { \"World\": \"World\" } but got %+v\n", response.Body)
 		} else {
-			test.Logf("HTTP response body read\n")
-		}
-	})
-
-	_, err = response.JSON()
-
-	test.Run("get response body", func(test *testing.T) {
-		if err == nil {
-			test.Errorf("HTTP response body failed: %v\n", err)
-			return
-		} else {
-			test.Logf("HTTP response body read\n")
+			test.Logf("HTTP response was correct\n")
 		}
 	})
 }
@@ -110,6 +85,6 @@ func BenchmarkGet(benchmark *testing.B) {
 	go host()
 
 	for index := 0; index < benchmark.N; index++ {
-		Fetch("http://localhost:8080/plain", Options{})
+		Fetch[string]("http://localhost:8080/plain", Options[Empty]{})
 	}
 }

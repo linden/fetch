@@ -3,112 +3,129 @@ package fetch
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
+	"fmt"
 	"io"
-	"io/ioutil"
 	"net/http"
 )
 
-type Headers map[string]string
+type Headers map[string]any
 
-type Options struct {
+type Options[T any] struct {
 	Method  string
 	Headers Headers
-	Body    string
+	Body    T
 }
 
-type Object map[string]interface{}
+type Response[T any] struct {
+	Body T
 
-type Response struct {
-	Body     io.ReadCloser
-	BodyUsed bool
-
-	Headers    map[string][]string
+	Headers    Headers
 	Status     int
 	StatusText string
 	URL        string
 }
 
-var client *http.Client
+type Empty any
 
-func init() {
-	client = &http.Client{}
-}
+var Client = &http.Client{}
 
-func (response *Response) Text() (body string, err error) {
-	if response.BodyUsed != false {
-		return "", errors.New("response body already used")
-	}
-
-	plain, err := ioutil.ReadAll(response.Body)
-
-	if err != nil {
-		return "", err
-	}
-
-	response.BodyUsed = true
-
-	return string(plain), nil
-}
-
-func (response *Response) JSON() (Body Object, err error) {
-	if response.BodyUsed != false {
-		return Object{}, errors.New("response body already used")
-	}
-
-	plain, err := ioutil.ReadAll(response.Body)
-
-	if err != nil {
-		return Object{}, err
-	}
-
-	response.BodyUsed = true
-
-	var object Object
-
-	err = json.Unmarshal(plain, &object)
-
-	if err != nil {
-		return Object{}, err
-	}
-
-	return object, nil
-}
-
-func Fetch(address string, options Options) (body Response, err error) {
+func Fetch[T any, B any](address string, options Options[B]) (Response[T], error) {
 	if options.Method == "" {
 		options.Method = "GET"
 	}
 
-	request, err := http.NewRequest(options.Method, address, bytes.NewBuffer([]byte(options.Body)))
+	var payload []byte
 
-	if err != nil {
-		return Response{}, err
-	}
+	switch value := any(options.Body).(type) {
+	case []byte:
+		payload = value
 
-	if len(options.Headers) > 0 {
-		for key, value := range options.Headers {
-			request.Header.Add(key, value)
+	case string:
+		payload = []byte(value)
+
+	case Empty:
+		// do nothing
+
+	default:
+		// TODO: check if `T` is non-json
+		var err error
+
+		payload, err = json.Marshal(value)
+
+		if err != nil {
+			return Response[T]{}, err
 		}
 	}
 
-	response, err := client.Do(request)
+	request, err := http.NewRequest(options.Method, address, bytes.NewBuffer(payload))
 
 	if err != nil {
-		return Response{}, err
+		return Response[T]{}, err
 	}
 
-	return Response{
-		Body:     response.Body,
-		BodyUsed: false,
+	if len(options.Headers) > 0 {
+		for key, unknown := range options.Headers {
+			switch value := unknown.(type) {
+			case string:
+				request.Header.Add(key, value)
 
-		Headers:    response.Header,
+			case []string:
+				for _, cursor := range value {
+					request.Header.Add(key, cursor)
+				}
+
+			default:
+				return Response[T]{}, fmt.Errorf("%T is not a supported header type", value)
+			}
+		}
+	}
+
+	response, err := Client.Do(request)
+
+	if err != nil {
+		return Response[T]{}, err
+	}
+
+	plain, err := io.ReadAll(response.Body)
+
+	if err != nil {
+		return Response[T]{}, err
+	}
+
+	var body T
+
+	switch any(body).(type) {
+	case string:
+		body = any(string(plain)).(T)
+
+	case []byte:
+		body = any(plain).(T)
+
+	default:
+		// TODO: check if `T` is non-json
+		err = json.Unmarshal(plain, &body)
+
+		if err != nil {
+			return Response[T]{}, err
+		}
+	}
+
+	headers := make(map[string]any)
+
+	for key, value := range response.Header {
+		if len(value) == 1 {
+			headers[key] = any(value[0])
+		} else {
+			headers[key] = any(value)
+		}
+	}
+
+	return Response[T]{
+		Body: body,
+
+		Headers:    headers,
 		Status:     response.StatusCode,
 		StatusText: response.Status,
 		URL:        address,
 	}, nil
-}
-
-func SetClient(fresh *http.Client) {
-	client = fresh
 }
